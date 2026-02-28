@@ -56,8 +56,8 @@ export class UIScene extends Phaser.Scene {
 
   // --- Conversation methods ---
 
-  showConversation(onConfirm) {
-    this.conversationUI.show(onConfirm);
+  showConversation(onConfirm, onExit, npcName) {
+    this.conversationUI.show(onConfirm, onExit, npcName);
   }
 
   hideConversation() {

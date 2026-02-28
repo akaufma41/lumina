@@ -321,18 +321,20 @@ export class ForestScene extends Phaser.Scene {
           uiScene.completeTypewriter();
         } else {
           // NPC finished — show conversation input
+          const data = DIALOGUE[this.dialogueState.npcId];
           uiScene.hideDialogue();
           this.dialogueState.phase = 'conversation_listening';
-          uiScene.showConversation((confirmedText) => {
-            this.sendChildMessage(confirmedText);
-          });
+          uiScene.showConversation(
+            (confirmedText) => { this.sendChildMessage(confirmedText); },
+            () => { this.endConversation(); },
+            data.name
+          );
         }
         break;
       }
 
       case 'conversation_listening': {
-        // Tap during listening ends conversation
-        this.endConversation();
+        // Exit handled by X button in ConversationUI — ignore taps
         break;
       }
 
