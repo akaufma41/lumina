@@ -5,3 +5,14 @@
 [dev]
   command = "npm run dev"
   port = 5174
+
+# Prevent browser from caching index.html (so new deploys always load)
+[[headers]]
+  for = "/"
+  [headers.values]
+    Cache-Control = "no-cache"
+
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "no-cache"

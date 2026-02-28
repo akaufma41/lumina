@@ -1,22 +1,11 @@
-const CACHE_NAME = 'lumina-v1';
+const CACHE_NAME = 'lumina-v2';
 
-// Install: pre-cache the shell
+// Install: skip waiting to activate immediately
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll([
-        '/',
-        '/index.html',
-        '/manifest.json',
-        '/icon-192.png',
-        '/icon-512.png'
-      ]);
-    })
-  );
   self.skipWaiting();
 });
 
-// Activate: clean up old caches
+// Activate: clean up ALL old caches
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((names) => {
@@ -28,7 +17,7 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Fetch: cache-first for assets, network-first for API
+// Fetch: network-first for navigation/HTML, cache-first for assets
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
@@ -37,24 +26,34 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Navigation requests (HTML pages): NETWORK-FIRST
+  // Always get fresh HTML so new deploys load immediately
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          if (response.ok) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+          }
+          return response;
+        })
+        .catch(() => caches.match('/index.html'))
+    );
+    return;
+  }
+
+  // All other assets: CACHE-FIRST (Vite hashes filenames, so cached = correct)
   event.respondWith(
     caches.match(event.request).then((cached) => {
       if (cached) return cached;
 
       return fetch(event.request).then((response) => {
-        // Cache successful GET responses
         if (response.ok && event.request.method === 'GET') {
           const clone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, clone);
-          });
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
         }
         return response;
-      }).catch(() => {
-        // Offline fallback: return cached index for navigation
-        if (event.request.mode === 'navigate') {
-          return caches.match('/index.html');
-        }
       });
     })
   );
