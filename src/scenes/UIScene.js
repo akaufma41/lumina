@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { ReadingDialogueBox } from '../ui/ReadingDialogueBox.js';
 import { ConversationUI } from '../ui/ConversationUI.js';
 import { QuestHUD } from '../ui/QuestHUD.js';
+import { CollectibleCounter } from '../ui/CollectibleCounter.js';
 import { DIALOGUE } from '../config/dialogueData.js';
 import { findCurriculumWords } from '../config/curriculumWords.js';
 import { ReadingTracker } from '../systems/ReadingTracker.js';
@@ -15,6 +16,7 @@ export class UIScene extends Phaser.Scene {
     this.dialogueBox = new ReadingDialogueBox(this);
     this.conversationUI = new ConversationUI(this);
     this.questHUD = new QuestHUD(this);
+    this.collectibleCounter = new CollectibleCounter(this);
     this.readingTracker = new ReadingTracker();
 
     // Wire parent star button to reading tracker + progress

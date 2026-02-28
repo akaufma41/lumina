@@ -11,7 +11,7 @@ export class ReadingDialogueBox {
 
     // Layout constants
     this.BOX_X = 10;
-    this.BOX_Y = 440;
+    this.BOX_Y = 410;
     this.BOX_W = 340;
     this.BOX_H = 200;
     this.PAD_LEFT = 25;

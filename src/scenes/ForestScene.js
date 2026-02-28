@@ -8,6 +8,7 @@ import { Pathfinder } from '../systems/Pathfinder.js';
 import { AtmosphereManager } from '../systems/AtmosphereManager.js';
 import { ProgressManager } from '../systems/ProgressManager.js';
 import { QuestManager } from '../systems/QuestManager.js';
+import { CollectibleManager } from '../systems/CollectibleManager.js';
 import { QUEST_CHAIN } from '../config/questData.js';
 
 export class ForestScene extends Phaser.Scene {
@@ -73,8 +74,14 @@ export class ForestScene extends Phaser.Scene {
     const savedTier = this.progressManager.getWorldTier();
     this.atmosphereManager.applyTier(savedTier, false);
 
-    // 13. Restore quest HUD if a quest is active
-    this.time.delayedCall(100, () => this.updateQuestHUD());
+    // 13. Collectible orbs
+    this.collectibleManager = new CollectibleManager(this);
+
+    // 14. Restore quest HUD + collectible counter if applicable
+    this.time.delayedCall(100, () => {
+      this.updateQuestHUD();
+      this.updateCollectibleCounter();
+    });
   }
 
   // ─── TILEMAP ──────────────────────────────────────────────
@@ -196,6 +203,14 @@ export class ForestScene extends Phaser.Scene {
     const worldPoint = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
     const tileX = Math.floor(worldPoint.x / TILE_SIZE);
     const tileY = Math.floor(worldPoint.y / TILE_SIZE);
+
+    // Check if we tapped on a collectible orb
+    const orb = this.collectibleManager.checkTap(tileX, tileY);
+    if (orb) {
+      const result = this.collectibleManager.collectOrb(orb);
+      this.updateCollectibleCounter();
+      return;
+    }
 
     // Check if we tapped on an NPC
     let tappedNpc = null;
@@ -474,12 +489,19 @@ export class ForestScene extends Phaser.Scene {
 
   async callAPI(npcId, messages) {
     const data = DIALOGUE[npcId];
+
+    // Enhance system prompt if both orbs for this NPC are collected
+    let systemPrompt = data.systemPrompt;
+    if (this.collectibleManager && this.collectibleManager.allCollectedForNpc(npcId)) {
+      systemPrompt += '\n\nThe child has found your two hidden orbs in the forest! Mention this — you are grateful and impressed. Tell them a secret about your part of the forest.';
+    }
+
     const res = await fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         npcId,
-        systemPrompt: data.systemPrompt,
+        systemPrompt,
         messages: messages.length === 0
           ? [{ role: 'user', content: 'Hello! I just came to talk to you.' }]
           : messages
@@ -550,6 +572,17 @@ export class ForestScene extends Phaser.Scene {
     uiScene.hideConversation();
   }
 
+  updateCollectibleCounter() {
+    const uiScene = this.scene.get('UIScene');
+    if (!uiScene || !uiScene.collectibleCounter) return;
+    const collected = this.collectibleManager.getTotalCollected();
+    const total = this.collectibleManager.getTotal();
+    uiScene.collectibleCounter.update(collected, total);
+    if (collected > 0) {
+      uiScene.collectibleCounter.flash();
+    }
+  }
+
   endDialogue() {
     const uiScene = this.scene.get('UIScene');
     this.dialogueState.phase = 'idle';
@@ -573,6 +606,10 @@ export class ForestScene extends Phaser.Scene {
         const dist = Math.sqrt(dx * dx + dy * dy);
         npc.setIndicatorVisible(dist < INTERACT_RANGE);
       }
+
+      // Orb proximity glow
+      const playerPos = this.player.getTilePos();
+      this.collectibleManager.updateProximity(playerPos.x, playerPos.y);
     }
   }
 }

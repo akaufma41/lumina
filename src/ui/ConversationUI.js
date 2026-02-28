@@ -22,7 +22,7 @@ export class ConversationUI {
     this.childBubbleGfx = scene.add.graphics();
     this.container.add(this.childBubbleGfx);
 
-    this.childBubbleText = scene.add.text(180, 418, '', {
+    this.childBubbleText = scene.add.text(180, 388, '', {
       fontSize: '20px',
       fontFamily: FONT,
       color: '#eeddff',
@@ -37,11 +37,11 @@ export class ConversationUI {
     this.confirmBtnGfx = scene.add.graphics();
     this.container.add(this.confirmBtnGfx);
 
-    this.confirmHit = scene.add.circle(240, 410, 22, 0x000000, 0)
+    this.confirmHit = scene.add.circle(240, 380, 22, 0x000000, 0)
       .setInteractive({ useHandCursor: true });
     this.container.add(this.confirmHit);
 
-    this.confirmText = scene.add.text(240, 410, '\u2713', {
+    this.confirmText = scene.add.text(240, 380, '\u2713', {
       fontSize: '24px',
       fontFamily: 'Arial, sans-serif',
       color: '#44dd66',
@@ -54,11 +54,11 @@ export class ConversationUI {
     this.editBtnGfx = scene.add.graphics();
     this.container.add(this.editBtnGfx);
 
-    this.editHit = scene.add.circle(290, 410, 22, 0x000000, 0)
+    this.editHit = scene.add.circle(290, 380, 22, 0x000000, 0)
       .setInteractive({ useHandCursor: true });
     this.container.add(this.editHit);
 
-    this.editText = scene.add.text(290, 410, '\u270E', {
+    this.editText = scene.add.text(290, 380, '\u270E', {
       fontSize: '20px',
       fontFamily: 'Arial, sans-serif',
       color: '#ffcc88',
@@ -67,8 +67,8 @@ export class ConversationUI {
     this.container.add(this.editText);
 
     // Button backgrounds
-    this._drawButton(this.confirmBtnGfx, 218, 388, 44, 44, 0x1a2e1a);
-    this._drawButton(this.editBtnGfx, 268, 388, 44, 44, 0x2e2a1a);
+    this._drawButton(this.confirmBtnGfx, 218, 358, 44, 44, 0x1a2e1a);
+    this._drawButton(this.editBtnGfx, 268, 358, 44, 44, 0x2e2a1a);
 
     this.confirmHit.on('pointerdown', () => {
       if (this.onConfirm) this.onConfirm(this.transcript);
@@ -85,7 +85,7 @@ export class ConversationUI {
     this.micContainer.setVisible(false);
 
     const micX = 180;
-    const micY = 580;
+    const micY = 550;
 
     // Outer glow ring
     this.micRing = scene.add.circle(micX, micY, 42);
@@ -142,7 +142,7 @@ export class ConversationUI {
     this.exitContainer.setVisible(false);
 
     const exitX = 335;
-    const exitY = 530;
+    const exitY = 500;
 
     const exitBg = scene.add.graphics();
     exitBg.fillStyle(0x2a1a3a, 0.8);
@@ -175,14 +175,14 @@ export class ConversationUI {
     // Background pill
     const thinkBg = scene.add.graphics();
     thinkBg.fillStyle(0x1a1a2e, 0.9);
-    thinkBg.fillRoundedRect(148, 408, 64, 28, 12);
+    thinkBg.fillRoundedRect(148, 378, 64, 28, 12);
     thinkBg.lineStyle(1, 0x4a3a6a, 0.5);
-    thinkBg.strokeRoundedRect(148, 408, 64, 28, 12);
+    thinkBg.strokeRoundedRect(148, 378, 64, 28, 12);
     this.thinkingContainer.add(thinkBg);
 
     this.thinkingDots = [];
     for (let i = 0; i < 3; i++) {
-      const dot = scene.add.circle(165 + i * 16, 422, 5, 0xffcc88, 0.6);
+      const dot = scene.add.circle(165 + i * 16, 392, 5, 0xffcc88, 0.6);
       this.thinkingContainer.add(dot);
       this.thinkingDots.push(dot);
 
@@ -488,7 +488,7 @@ export class ConversationUI {
     const bw = Math.min(bounds.width + padding * 2, 300);
     const bh = bounds.height + padding * 2;
     const bx = 180 - bw / 2;
-    const by = 420 - bh;
+    const by = 390 - bh;
 
     this.childBubbleGfx.clear();
     this.childBubbleGfx.fillStyle(0x2a1a3a, 0.92);

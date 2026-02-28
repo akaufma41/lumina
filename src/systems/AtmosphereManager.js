@@ -1,13 +1,13 @@
 import { TILE_SIZE, MAP_WIDTH, MAP_HEIGHT, COLORS } from '../config/constants.js';
 import { FOREST_MAP } from '../map/forestMap.js';
 
-// Tier data: [vignetteStrength, fireflyFrequency, lanternAlpha, mushroomAlpha, groundTint]
+// Tier data: [fireflyFrequency, lanternAlpha, mushroomAlpha, groundTint]
 const TIERS = [
-  { vignette: 0.85, fireflyFreq: 300, lanternAlpha: 0.10, mushroomAlpha: 0.08, tint: null },
-  { vignette: 0.75, fireflyFreq: 200, lanternAlpha: 0.15, mushroomAlpha: 0.12, tint: 0x332211 },
-  { vignette: 0.60, fireflyFreq: 130, lanternAlpha: 0.22, mushroomAlpha: 0.18, tint: 0x443322 },
-  { vignette: 0.40, fireflyFreq: 80,  lanternAlpha: 0.30, mushroomAlpha: 0.25, tint: 0x554433 },
-  { vignette: 0.15, fireflyFreq: 40,  lanternAlpha: 0.40, mushroomAlpha: 0.35, tint: 0x665544 },
+  { fireflyFreq: 300, lanternAlpha: 0.10, mushroomAlpha: 0.08, tint: null },
+  { fireflyFreq: 200, lanternAlpha: 0.15, mushroomAlpha: 0.12, tint: 0x332211 },
+  { fireflyFreq: 130, lanternAlpha: 0.22, mushroomAlpha: 0.18, tint: 0x443322 },
+  { fireflyFreq: 80,  lanternAlpha: 0.30, mushroomAlpha: 0.25, tint: 0x554433 },
+  { fireflyFreq: 40,  lanternAlpha: 0.40, mushroomAlpha: 0.35, tint: 0x665544 },
 ];
 
 export class AtmosphereManager {
@@ -16,12 +16,10 @@ export class AtmosphereManager {
     this.currentTier = 0;
     this.lanternGlows = [];
     this.mushroomGlows = [];
-    this.vignetteFX = null;
     this.fireflyEmitter = null;
     this.groundTintOverlay = null;
 
     this.createFireflyTexture();
-    this.createVignette();
     this.createFireflies();
     this.createLanternGlows();
     this.createMushroomGlows();
@@ -34,14 +32,6 @@ export class AtmosphereManager {
     g.fillCircle(3, 3, 3);
     g.generateTexture('firefly', 6, 6);
     g.destroy();
-  }
-
-  createVignette() {
-    try {
-      this.vignetteFX = this.scene.cameras.main.postFX.addVignette(0.5, 0.5, 0.85, 0.35);
-    } catch (e) {
-      // Canvas renderer doesn't support postFX
-    }
   }
 
   createFireflies() {
@@ -130,20 +120,6 @@ export class AtmosphereManager {
     if (!data) return;
     this.currentTier = tier;
     const duration = animate ? 2000 : 0;
-
-    // Vignette
-    if (this.vignetteFX) {
-      if (animate) {
-        this.scene.tweens.add({
-          targets: this.vignetteFX,
-          strength: data.vignette,
-          duration: duration,
-          ease: 'Sine.easeInOut'
-        });
-      } else {
-        this.vignetteFX.strength = data.vignette;
-      }
-    }
 
     // Fireflies — adjust frequency (lower = more frequent = more fireflies)
     if (this.fireflyEmitter) {
