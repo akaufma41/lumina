@@ -6,6 +6,9 @@ import { Player } from '../entities/Player.js';
 import { NPC } from '../entities/NPC.js';
 import { Pathfinder } from '../systems/Pathfinder.js';
 import { AtmosphereManager } from '../systems/AtmosphereManager.js';
+import { ProgressManager } from '../systems/ProgressManager.js';
+import { QuestManager } from '../systems/QuestManager.js';
+import { QUEST_CHAIN } from '../config/questData.js';
 
 export class ForestScene extends Phaser.Scene {
   constructor() {
@@ -41,8 +44,15 @@ export class ForestScene extends Phaser.Scene {
     // 8. Launch UI scene on top
     this.scene.launch('UIScene');
 
-    // 9. Pointer (tap) input
+    // 9. Pointer (tap/hold) input
     this.input.on('pointerdown', (pointer) => this.handleTap(pointer));
+    this.input.on('pointermove', (pointer) => this.handlePointerMove(pointer));
+    this.input.on('pointerup', (pointer) => this.handlePointerUp(pointer));
+
+    // Hold-to-move state
+    this.holdingPointer = false;
+    this.lastMoveTime = 0;
+    this.lastMoveTarget = { x: -1, y: -1 };
 
     // 10. Dialogue state
     this.dialogueState = {
@@ -54,9 +64,17 @@ export class ForestScene extends Phaser.Scene {
       apiAvailable: true,
     };
 
-    // 11. Atmosphere effects
+    // 11. Progress + Quest tracking
+    this.progressManager = new ProgressManager();
+    this.questManager = new QuestManager(QUEST_CHAIN);
+
+    // 12. Atmosphere effects (tier from saved progress)
     this.atmosphereManager = new AtmosphereManager(this);
-    this.atmosphereManager.applyTier(1, false);
+    const savedTier = this.progressManager.getWorldTier();
+    this.atmosphereManager.applyTier(savedTier, false);
+
+    // 13. Restore quest HUD if a quest is active
+    this.time.delayedCall(100, () => this.updateQuestHUD());
   }
 
   // ─── TILEMAP ──────────────────────────────────────────────
@@ -201,23 +219,12 @@ export class ForestScene extends Phaser.Scene {
         }
       }
     } else {
-      // Tap on ground — pathfind there
-      this.dialogueState.pendingNpc = null;
+      // Tap on ground — pathfind there + enable hold-to-move
       if (tileX >= 0 && tileX < MAP_WIDTH && tileY >= 0 && tileY < MAP_HEIGHT) {
-        // Find nearest walkable tile if target is blocked
-        let targetX = tileX;
-        let targetY = tileY;
-        if (BLOCKED_TILES.has(FOREST_MAP[tileY][tileX])) {
-          const near = this.findNearestWalkable(tileX, tileY);
-          if (!near) return;
-          targetX = near.x;
-          targetY = near.y;
-        }
-
-        const path = this.pathfinder.findPath(playerPos.x, playerPos.y, targetX, targetY);
-        if (path) {
-          this.player.setPath(path);
-        }
+        this.holdingPointer = true;
+        this.lastMoveTime = Date.now();
+        this.lastMoveTarget = { x: tileX, y: tileY };
+        this.pathfindToGround(tileX, tileY);
       }
     }
   }
@@ -267,6 +274,67 @@ export class ForestScene extends Phaser.Scene {
     return null;
   }
 
+  // ─── HOLD-TO-MOVE ───────────────────────────────────────
+
+  handlePointerMove(pointer) {
+    if (!this.holdingPointer) return;
+    if (this.dialogueState.phase !== 'idle') return;
+    if (!pointer.isDown) return;
+
+    // Throttle to every 200ms
+    const now = Date.now();
+    if (now - this.lastMoveTime < 200) return;
+    this.lastMoveTime = now;
+
+    const worldPoint = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
+    const tileX = Math.floor(worldPoint.x / TILE_SIZE);
+    const tileY = Math.floor(worldPoint.y / TILE_SIZE);
+
+    // Skip if same tile as last target
+    if (tileX === this.lastMoveTarget.x && tileY === this.lastMoveTarget.y) return;
+
+    // Skip if out of bounds
+    if (tileX < 0 || tileX >= MAP_WIDTH || tileY < 0 || tileY >= MAP_HEIGHT) return;
+
+    this.lastMoveTarget = { x: tileX, y: tileY };
+    this.pathfindToGround(tileX, tileY);
+  }
+
+  handlePointerUp(pointer) {
+    if (!this.holdingPointer) return;
+    this.holdingPointer = false;
+
+    if (this.dialogueState.phase !== 'idle') return;
+
+    // Final pathfind to release point
+    const worldPoint = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
+    const tileX = Math.floor(worldPoint.x / TILE_SIZE);
+    const tileY = Math.floor(worldPoint.y / TILE_SIZE);
+
+    if (tileX >= 0 && tileX < MAP_WIDTH && tileY >= 0 && tileY < MAP_HEIGHT) {
+      this.pathfindToGround(tileX, tileY);
+    }
+  }
+
+  pathfindToGround(tileX, tileY) {
+    const playerPos = this.player.getTilePos();
+    let targetX = tileX;
+    let targetY = tileY;
+
+    if (BLOCKED_TILES.has(FOREST_MAP[tileY][tileX])) {
+      const near = this.findNearestWalkable(tileX, tileY);
+      if (!near) return;
+      targetX = near.x;
+      targetY = near.y;
+    }
+
+    const path = this.pathfinder.findPath(playerPos.x, playerPos.y, targetX, targetY);
+    if (path) {
+      this.dialogueState.pendingNpc = null;
+      this.player.setPath(path);
+    }
+  }
+
   // ─── NPC INTERACTION ──────────────────────────────────────
 
   onArrivedAtNpc(npc) {
@@ -303,7 +371,10 @@ export class ForestScene extends Phaser.Scene {
           this.dialogueState.lineIndex++;
           const data = DIALOGUE[this.dialogueState.npcId];
           if (this.dialogueState.lineIndex >= data.intro.length) {
-            // Intro done — start conversation or end
+            // Intro done — check quest progression
+            this.checkQuestCompletion(this.dialogueState.npcId);
+
+            // Start conversation or end
             if (this.dialogueState.apiAvailable && data.systemPrompt) {
               this.startConversation();
             } else {
@@ -419,6 +490,54 @@ export class ForestScene extends Phaser.Scene {
     const json = await res.json();
     if (!json.reply) throw new Error('No reply');
     return json.reply;
+  }
+
+  // ─── QUEST LOGIC ─────────────────────────────────────────
+
+  checkQuestCompletion(npcId) {
+    if (!this.questManager) return;
+
+    // First Keeper intro starts the quest chain
+    if (npcId === 'keeper' && this.questManager.data.currentQuestIndex === -1) {
+      this.questManager.startFirstQuest();
+      this.questManager.markIntroSeen(npcId);
+      this.updateQuestHUD();
+      return;
+    }
+
+    // Is this NPC the current quest target?
+    if (this.questManager.isQuestTarget(npcId)) {
+      const previousTotal = this.progressManager.getTotalCompleted();
+      const completedQuest = this.questManager.completeCurrentQuest();
+
+      if (completedQuest) {
+        this.progressManager.markCompleted(completedQuest.id);
+
+        // Check for milestone (world tier change)
+        const milestone = this.progressManager.checkMilestone(previousTotal);
+        if (milestone !== null) {
+          const newTier = this.progressManager.getWorldTier();
+          this.atmosphereManager.applyTier(newTier, true);
+          this.atmosphereManager.celebrateTierUp();
+        }
+
+        this.updateQuestHUD();
+      }
+    }
+
+    this.questManager.markIntroSeen(npcId);
+  }
+
+  updateQuestHUD() {
+    const uiScene = this.scene.get('UIScene');
+    if (!uiScene || !uiScene.questHUD) return;
+
+    const quest = this.questManager.getCurrentQuest();
+    if (quest) {
+      uiScene.showQuest(quest.objectiveText);
+    } else if (this.questManager.isAllComplete()) {
+      uiScene.hideQuest();
+    }
   }
 
   endConversation() {

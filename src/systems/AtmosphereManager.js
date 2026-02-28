@@ -244,4 +244,26 @@ export class AtmosphereManager {
       this.groundTintOverlay.setAlpha(0);
     }
   }
+
+  celebrateTierUp() {
+    const cam = this.scene.cameras.main;
+    const cx = cam.worldView.centerX;
+    const cy = cam.worldView.centerY;
+
+    // Sparkle burst using the existing firefly texture
+    const emitter = this.scene.add.particles(cx, cy, 'firefly', {
+      speed: { min: 30, max: 80 },
+      scale: { start: 1.2, end: 0 },
+      alpha: { start: 0.9, end: 0 },
+      lifespan: 1500,
+      quantity: 20,
+      emitting: false,
+      blendMode: 'ADD',
+    });
+    emitter.setDepth(100);
+    emitter.explode();
+
+    // Clean up after particles fade
+    this.scene.time.delayedCall(2000, () => emitter.destroy());
+  }
 }
