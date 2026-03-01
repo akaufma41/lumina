@@ -182,11 +182,11 @@ export class BootScene extends Phaser.Scene {
     // Grass tileset layout: rows of autotile groups, 12 cols × 20 rows
     // Center grass fill is around col 9, row 2 area (similar to spring tileset)
 
-    // Tile 0: Dark forest grass
+    // Tile 0: Dark forest grass (lighter than tile 3 so it reads as walkable)
     {
       const canvas = this.extractTile('ts_grass', 9, 2);
       const ctx = canvas.getContext('2d');
-      ctx.fillStyle = 'rgba(0, 10, 5, 0.25)';
+      ctx.fillStyle = 'rgba(0, 10, 5, 0.12)';
       ctx.fillRect(0, 0, T, T);
       this.textures.addCanvas('tile_0', canvas);
     }
@@ -234,12 +234,25 @@ export class BootScene extends Phaser.Scene {
       this.textures.addCanvas('tile_2', canvas);
     }
 
-    // Tile 3: Tree placeholder (dark fill — actual trees placed as sprites)
+    // Tile 3: Tree/blocked (dark dense undergrowth — clearly not walkable)
     {
       const canvas = this.extractTile('ts_grass', 9, 2);
       const ctx = canvas.getContext('2d');
-      ctx.fillStyle = 'rgba(0, 15, 5, 0.5)';
+      // Heavy dark overlay — reads as dense forest shadow
+      ctx.fillStyle = 'rgba(0, 10, 5, 0.7)';
       ctx.fillRect(0, 0, T, T);
+      // Root lines (dark brown)
+      ctx.fillStyle = 'rgba(40, 25, 10, 0.6)';
+      ctx.fillRect(2, 14, 8, 2);
+      ctx.fillRect(18, 8, 10, 2);
+      ctx.fillRect(6, 24, 12, 2);
+      ctx.fillRect(22, 20, 7, 2);
+      // Mossy patches (dark green clumps)
+      ctx.fillStyle = 'rgba(15, 40, 10, 0.5)';
+      ctx.fillRect(4, 4, 4, 3);
+      ctx.fillRect(20, 14, 5, 3);
+      ctx.fillRect(10, 22, 4, 3);
+      ctx.fillRect(26, 26, 4, 3);
       this.textures.addCanvas('tile_3', canvas);
     }
 
@@ -270,11 +283,11 @@ export class BootScene extends Phaser.Scene {
       this.textures.addCanvas('tile_6', canvas);
     }
 
-    // Tile 7: Clearing (bright grass)
+    // Tile 7: Clearing (bright open grass — inviting safe space)
     {
       const canvas = this.extractTile('ts_grass', 9, 2);
       const ctx = canvas.getContext('2d');
-      ctx.fillStyle = 'rgba(30, 50, 15, 0.06)';
+      ctx.fillStyle = 'rgba(40, 60, 20, 0.03)';
       ctx.fillRect(0, 0, T, T);
       // Pebbles
       ctx.fillStyle = 'rgba(80, 80, 100, 0.2)';

@@ -134,7 +134,7 @@ export class ForestScene extends Phaser.Scene {
         const py = y * TILE_SIZE + TILE_SIZE / 2;
 
         // Trees on tree tiles (sparse placement)
-        if (tileId === 3 && rand() < 0.3) {
+        if (tileId === 3 && rand() < 0.6) {
           const frame = treeFrames[Math.floor(rand() * treeFrames.length)];
           const tree = this.add.sprite(px, py - 8, 'obj_trees', frame);
           tree.setDepth(y + 5);
