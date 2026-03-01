@@ -102,4 +102,54 @@ export class UIScene extends Phaser.Scene {
   hideQuest() {
     this.questHUD.hide();
   }
+
+  // --- Tutorial prompt ---
+
+  showTutorialPrompt(text) {
+    if (this.tutorialPrompt) return;
+
+    this.tutorialPrompt = this.add.text(180, 590, text, {
+      fontSize: '18px',
+      fontFamily: '"Crimson Text", Georgia, "Times New Roman", serif',
+      color: '#ffcc88',
+      stroke: '#000000',
+      strokeThickness: 3,
+      resolution: 2,
+    }).setOrigin(0.5).setAlpha(0).setDepth(200);
+
+    // Fade in
+    this.tweens.add({
+      targets: this.tutorialPrompt,
+      alpha: 1,
+      duration: 500,
+      ease: 'Sine.easeOut',
+    });
+
+    // Gentle pulse
+    this.tweens.add({
+      targets: this.tutorialPrompt,
+      alpha: 0.5,
+      duration: 1200,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut',
+      delay: 500,
+    });
+  }
+
+  hideTutorialPrompt() {
+    if (!this.tutorialPrompt) return;
+
+    this.tweens.killTweensOf(this.tutorialPrompt);
+    const prompt = this.tutorialPrompt;
+    this.tutorialPrompt = null;
+
+    this.tweens.add({
+      targets: prompt,
+      alpha: 0,
+      duration: 400,
+      ease: 'Sine.easeIn',
+      onComplete: () => prompt.destroy(),
+    });
+  }
 }

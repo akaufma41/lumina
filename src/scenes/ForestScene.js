@@ -9,6 +9,7 @@ import { AtmosphereManager } from '../systems/AtmosphereManager.js';
 import { ProgressManager } from '../systems/ProgressManager.js';
 import { QuestManager } from '../systems/QuestManager.js';
 import { CollectibleManager } from '../systems/CollectibleManager.js';
+import { TutorialGuide } from '../systems/TutorialGuide.js';
 import { QUEST_CHAIN } from '../config/questData.js';
 
 export class ForestScene extends Phaser.Scene {
@@ -77,7 +78,12 @@ export class ForestScene extends Phaser.Scene {
     // 13. Collectible orbs
     this.collectibleManager = new CollectibleManager(this);
 
-    // 14. Restore quest HUD + collectible counter if applicable
+    // 14. Tutorial guide for first-time players
+    if (this.questManager.data.currentQuestIndex === -1) {
+      this.tutorialGuide = new TutorialGuide(this);
+    }
+
+    // 15. Restore quest HUD + collectible counter if applicable
     this.time.delayedCall(100, () => {
       this.updateQuestHUD();
       this.updateCollectibleCounter();
@@ -197,6 +203,11 @@ export class ForestScene extends Phaser.Scene {
     if (this.dialogueState.phase !== 'idle') {
       this.handleDialogueTap();
       return;
+    }
+
+    // Notify tutorial guide of first tap
+    if (this.tutorialGuide && !this.tutorialGuide.complete) {
+      this.tutorialGuide.onFirstTap();
     }
 
     // Convert screen coords to world coords
@@ -610,6 +621,11 @@ export class ForestScene extends Phaser.Scene {
       // Orb proximity glow
       const playerPos = this.player.getTilePos();
       this.collectibleManager.updateProximity(playerPos.x, playerPos.y);
+
+      // Tutorial guide follows player
+      if (this.tutorialGuide && !this.tutorialGuide.complete) {
+        this.tutorialGuide.update(playerPos.x, playerPos.y);
+      }
     }
   }
 }
