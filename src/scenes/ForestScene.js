@@ -10,7 +10,7 @@ import { ProgressManager } from '../systems/ProgressManager.js';
 import { QuestManager } from '../systems/QuestManager.js';
 import { CollectibleManager } from '../systems/CollectibleManager.js';
 import { TutorialGuide } from '../systems/TutorialGuide.js';
-import { QuestBeacon } from '../systems/QuestBeacon.js';
+import { QuestGuide } from '../systems/QuestGuide.js';
 import { QUEST_CHAIN } from '../config/questData.js';
 
 export class ForestScene extends Phaser.Scene {
@@ -84,15 +84,17 @@ export class ForestScene extends Phaser.Scene {
       this.tutorialGuide = new TutorialGuide(this);
     }
 
-    // 15. Quest beacon for guiding to next NPC
-    this.questBeacon = new QuestBeacon(this);
+    // 15. Quest guide firefly (first quest only)
+    this.questGuide = new QuestGuide(this);
 
-    // 16. Restore quest HUD + collectible counter + beacon if applicable
+    // 16. Restore quest HUD + collectible counter + guide if first quest
     this.time.delayedCall(200, () => {
       this.updateQuestHUD();
       this.updateCollectibleCounter();
       const quest = this.questManager.getCurrentQuest();
-      if (quest) this.questBeacon.show(quest.target);
+      if (quest && this.questManager.data.currentQuestIndex === 0) {
+        this.questGuide.show(quest.target);
+      }
     });
   }
 
@@ -107,7 +109,7 @@ export class ForestScene extends Phaser.Scene {
 
     const tileset = map.addTilesetImage('forest_tileset');
     this.groundLayer = map.createLayer(0, tileset, 0, 0);
-    this.groundLayer.setCollision([3, 4, 8]);
+    this.groundLayer.setCollision([3, 4]);
   }
 
   // ─── OBJECTS ──────────────────────────────────────────────
@@ -313,17 +315,19 @@ export class ForestScene extends Phaser.Scene {
     if (this.dialogueState.phase !== 'idle') return;
     if (!pointer.isDown) return;
 
-    // Throttle to every 200ms
+    // Throttle to every 400ms to reduce stuttering
     const now = Date.now();
-    if (now - this.lastMoveTime < 200) return;
+    if (now - this.lastMoveTime < 400) return;
     this.lastMoveTime = now;
 
     const worldPoint = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
     const tileX = Math.floor(worldPoint.x / TILE_SIZE);
     const tileY = Math.floor(worldPoint.y / TILE_SIZE);
 
-    // Skip if same tile as last target
-    if (tileX === this.lastMoveTarget.x && tileY === this.lastMoveTarget.y) return;
+    // Skip if target hasn't moved at least 3 tiles from last target
+    const dx = Math.abs(tileX - this.lastMoveTarget.x);
+    const dy = Math.abs(tileY - this.lastMoveTarget.y);
+    if (dx + dy < 3) return;
 
     // Skip if out of bounds
     if (tileX < 0 || tileX >= MAP_WIDTH || tileY < 0 || tileY >= MAP_HEIGHT) return;
@@ -386,7 +390,6 @@ export class ForestScene extends Phaser.Scene {
     npc.faceToward(this.player.sprite.x, this.player.sprite.y);
 
     const uiScene = this.scene.get('UIScene');
-    uiScene.hideQuestArrow();
     uiScene.showDialogueText(data.name, data.intro[0]);
   }
 
@@ -616,14 +619,10 @@ export class ForestScene extends Phaser.Scene {
     const quest = this.questManager.getCurrentQuest();
     if (!quest) return;
 
-    const playerPos = this.player.getTilePos();
-
-    // World-space beacon at the target NPC
-    this.questBeacon.show(quest.target);
-
-    // Screen-space directional arrow
-    const uiScene = this.scene.get('UIScene');
-    if (uiScene) uiScene.showQuestArrow(quest.target, playerPos.x, playerPos.y);
+    // Guide firefly only for the first quest (Keeper → Moth)
+    if (this.questManager.data.currentQuestIndex === 0) {
+      this.questGuide.show(quest.target);
+    }
   }
 
   // ─── UPDATE LOOP ──────────────────────────────────────────
@@ -650,9 +649,9 @@ export class ForestScene extends Phaser.Scene {
         this.tutorialGuide.update(playerPos.x, playerPos.y);
       }
 
-      // Quest beacon auto-dissolve on approach
-      if (this.questBeacon) {
-        this.questBeacon.update(playerPos.x, playerPos.y);
+      // Quest guide firefly follows player (first quest only)
+      if (this.questGuide && !this.questGuide.complete) {
+        this.questGuide.update(playerPos.x, playerPos.y);
       }
     }
   }

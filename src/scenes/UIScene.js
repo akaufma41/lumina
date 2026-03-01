@@ -6,7 +6,6 @@ import { CollectibleCounter } from '../ui/CollectibleCounter.js';
 import { DIALOGUE } from '../config/dialogueData.js';
 import { findCurriculumWords } from '../config/curriculumWords.js';
 import { ReadingTracker } from '../systems/ReadingTracker.js';
-import { QuestArrow } from '../ui/QuestArrow.js';
 
 export class UIScene extends Phaser.Scene {
   constructor() {
@@ -19,7 +18,6 @@ export class UIScene extends Phaser.Scene {
     this.questHUD = new QuestHUD(this);
     this.collectibleCounter = new CollectibleCounter(this);
     this.readingTracker = new ReadingTracker();
-    this.questArrow = new QuestArrow(this);
 
     // Wire parent star button to reading tracker + progress
     this.dialogueBox.onParentConfirm((words) => {
@@ -103,16 +101,6 @@ export class UIScene extends Phaser.Scene {
 
   hideQuest() {
     this.questHUD.hide();
-  }
-
-  // --- Quest arrow methods ---
-
-  showQuestArrow(targetNpcId, playerTileX, playerTileY) {
-    this.questArrow.show(targetNpcId, playerTileX, playerTileY);
-  }
-
-  hideQuestArrow() {
-    this.questArrow.hide();
   }
 
   // --- Tutorial prompt ---

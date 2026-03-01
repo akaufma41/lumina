@@ -80,7 +80,7 @@ export const FOREST_MAP = [
 /* eslint-enable comma-spacing */
 
 // Tile types that block movement
-export const BLOCKED_TILES = new Set([3, 4, 8]);
+export const BLOCKED_TILES = new Set([3, 4]);
 
 // NPC spawn positions (tile coordinates)
 export const NPC_SPAWNS = [
