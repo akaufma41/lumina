@@ -10,6 +10,7 @@ import { ProgressManager } from '../systems/ProgressManager.js';
 import { QuestManager } from '../systems/QuestManager.js';
 import { CollectibleManager } from '../systems/CollectibleManager.js';
 import { TutorialGuide } from '../systems/TutorialGuide.js';
+import { QuestBeacon } from '../systems/QuestBeacon.js';
 import { QUEST_CHAIN } from '../config/questData.js';
 
 export class ForestScene extends Phaser.Scene {
@@ -83,10 +84,15 @@ export class ForestScene extends Phaser.Scene {
       this.tutorialGuide = new TutorialGuide(this);
     }
 
-    // 15. Restore quest HUD + collectible counter if applicable
-    this.time.delayedCall(100, () => {
+    // 15. Quest beacon for guiding to next NPC
+    this.questBeacon = new QuestBeacon(this);
+
+    // 16. Restore quest HUD + collectible counter + beacon if applicable
+    this.time.delayedCall(200, () => {
       this.updateQuestHUD();
       this.updateCollectibleCounter();
+      const quest = this.questManager.getCurrentQuest();
+      if (quest) this.questBeacon.show(quest.target);
     });
   }
 
@@ -380,6 +386,7 @@ export class ForestScene extends Phaser.Scene {
     npc.faceToward(this.player.sprite.x, this.player.sprite.y);
 
     const uiScene = this.scene.get('UIScene');
+    uiScene.hideQuestArrow();
     uiScene.showDialogueText(data.name, data.intro[0]);
   }
 
@@ -581,6 +588,7 @@ export class ForestScene extends Phaser.Scene {
     this.dialogueState.conversationMessages = [];
     uiScene.hideDialogue();
     uiScene.hideConversation();
+    this.showPostDialogueGuidance();
   }
 
   updateCollectibleCounter() {
@@ -601,6 +609,21 @@ export class ForestScene extends Phaser.Scene {
     this.dialogueState.lineIndex = 0;
     this.dialogueState.conversationMessages = [];
     uiScene.hideDialogue();
+    this.showPostDialogueGuidance();
+  }
+
+  showPostDialogueGuidance() {
+    const quest = this.questManager.getCurrentQuest();
+    if (!quest) return;
+
+    const playerPos = this.player.getTilePos();
+
+    // World-space beacon at the target NPC
+    this.questBeacon.show(quest.target);
+
+    // Screen-space directional arrow
+    const uiScene = this.scene.get('UIScene');
+    if (uiScene) uiScene.showQuestArrow(quest.target, playerPos.x, playerPos.y);
   }
 
   // ─── UPDATE LOOP ──────────────────────────────────────────
@@ -625,6 +648,11 @@ export class ForestScene extends Phaser.Scene {
       // Tutorial guide follows player
       if (this.tutorialGuide && !this.tutorialGuide.complete) {
         this.tutorialGuide.update(playerPos.x, playerPos.y);
+      }
+
+      // Quest beacon auto-dissolve on approach
+      if (this.questBeacon) {
+        this.questBeacon.update(playerPos.x, playerPos.y);
       }
     }
   }
